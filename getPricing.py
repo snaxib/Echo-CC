@@ -10,5 +10,7 @@ def getAuthToken(user, pw):
 		print('Authentication error')
 		print(r.text)
 
+def buildCardList():
+
 
 print(getAuthToken('poop@poop.com', 'poop'))
