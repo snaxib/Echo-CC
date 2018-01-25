@@ -1,12 +1,11 @@
 import requests
 import json
+import csv
 
-AuthSettings = json.load(open('auth.json'))
+Settings = json.load(open('settings.json'))
 
 
 def getAuthToken(user, pw):
-  # print(str(user))
-  # print(str(pw))
   r = requests.post('https://www.echomtg.com/api/user/auth/',
                     data={'email': str(user), 'password': str(pw)})
   responseBody = json.loads(r.text)
@@ -17,17 +16,35 @@ def getAuthToken(user, pw):
     print(r.text)
 
 
-def buildCardList(token):
+def buildCardReferenceList(token):
   cardRequest = requests.get(
       'https://www.echomtg.com/api/stores/card_reference/auth=' + str(token))
-  # print(cardRequest.text)
-  cardResponse = json.loads(cardRequest.text)
+  cardResponse = cardRequest.json()
   cardList = cardResponse['cards']
-  cardFile = open('cardList.json', 'w')
-  cardFile.write(str(cardList))
-  cardFile.close()
+  return cardList
 
 
-AuthToken = getAuthToken(AuthSettings['username'], AuthSettings['password'])
+def getNewPrices(token):
+  priceRequest = requests.get(
+      'https://www.echomtg.com/api/stores/price_reference/auth=' + str(token))
+  priceResponse = priceRequest.json()
+  priceList = priceResponse['suggested_prices']
+  return priceList
 
-buildCardList(AuthToken)
+
+def outputCSV(reference, prices):
+  with open('priceUpdate.csv', 'w') as csvfile:
+    rowwriter = csv.writer(csvfile, delimiter=',', quoting=csv.QUOTE_MINIMAL)
+    rowwriter.writerow(['Product Name', 'Set Name', 'Sell Price'])
+    for card, data in prices.items():
+      rowwriter.writerow([reference[str(card)]['name'],
+                          reference[str(card)]['expansion'], data['price']])
+
+
+AuthToken = getAuthToken(Settings['username'], Settings['password'])
+
+cardReference = buildCardReferenceList(AuthToken)
+
+priceList = getNewPrices(AuthToken)
+
+outputCSV(cardReference, priceList)
